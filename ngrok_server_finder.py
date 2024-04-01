@@ -1,10 +1,9 @@
-from concurrent.futures import ThreadPoolExecutor
+import threading
 from mcstatus import JavaServer
 from datetime import datetime
 
-port_range = range(10000, 30000)
 ip_range = range(0, 8)
-
+port_range = range(10000, 30000)
 version_protocols = {'1.20.4': 765, '1.20.3': 765, '1.20.2': 764, '1.20.1': 763, '1.20': 763, '1.19.4': 762, '1.19.3': 761, '1.19.2': 760, '1.19.1': 760, '1.19': 759, '1.18.2': 758,
                      '1.18.1': 757, '1.18': 757, '1.17.1': 756, '1.17': 755, '1.16.5': 754, '1.16.4': 754, '1.16.3': 753, '1.16.3 Release Candidate 1': 752, '1.16.2': 751,
                      '1.16.2 Release Candidate 2': 750, '1.16.2 Release Candidate 1': 749, '1.16.2 Pre-release 3': 748, '1.16.2 Pre-release 2': 746, '1.16.2 Pre-release 1': 744, '20w30a': 742,
@@ -69,30 +68,39 @@ def is_line_in_file(file_path, line):
     return False
 
 
-def check_server(ip: str, port: int, min_protocol: float, max_protocol: float, file_name) -> None:
-    server = JavaServer.lookup(address=f"{ip}:{port}", timeout=0.5).status()
-    if min_protocol <= server.version.protocol <= max_protocol:  # range - Server Version Protocol
-        message = f"{ip}:{port} | {server.version.name} | {server.players.online}/{server.players.max}\n"
-        with open(file_name, "a+") as writer:
-            writer.write(message)
-            print(message, end='')
+def check_server(ip: str, port_range, min_protocol: float, max_protocol: float, file_name, semaphore) -> None:
+    for port in port_range:
+        with semaphore:  # Захватываем семафор перед выполнением запроса
+            try:
+                server = JavaServer.lookup(address=f"{ip}:{port}", timeout=0.5).status()
+                if min_protocol <= server.version.protocol <= max_protocol:
+                    with open(file_name, "a+") as writer:
+                        message = f"{ip}:{port} | {server.version.name} | {server.players.online}/{server.players.max}\n"
+                        writer.write(message)
+                        print(message, end='')
+            except:
+                pass
 
 
 def server_finder(min_protocol: float, max_protocol: float) -> None:
     file_name = f"servers.{datetime.today().strftime('%Y_%m_%d_%H_%M_%S')}.txt".replace(" ", "_")
-    print(file_name)
+    print("Запись в файл:", file_name)
     print("Сканирование запущено. Если сканер вам кажется медленным, то за более быстрый вас забанит ngrok.")
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        for ip in ip_range:
-            for port in port_range:
-                executor.submit(check_server, f"{ip}.tcp.eu.ngrok.io", port, min_protocol, max_protocol, file_name)
+
+    semaphore = threading.Semaphore(10)  # Создаем семафор с максимальным количеством потоков
+
+    for ip in ip_range:
+        for port_start in range(10000, 30000, 500):  # Разделяем портовый диапазон на пакеты по 500 портов
+            port_end = min(port_start + 500, 30000)
+            threading.Thread(target=check_server, args=(f"{ip}.tcp.eu.ngrok.io", range(port_start, port_end), min_protocol, max_protocol, file_name, semaphore)).start()
 
 
 print("Введите версии точно из https://minecraft.wiki/w/Protocol_version#Java_Edition_2")
 print("Работают только версии с точными числовыми кодами, то есть 756, 342 и т.д.")
-
+min_version_input = ""
+max_version_input = ''
 while True:
-    min_version_input = input("Минимальная версия (оставьте пустым для поиска с самой старой возможной версии): ").strip()
+    # min_version_input = input("Минимальная версия (оставьте пустым для поиска с самой старой возможной версии): ").strip()
     if min_version_input == "":
         min_version = float("-inf")
         break
@@ -103,7 +111,7 @@ while True:
         print("Минимальная версия введена неверно, попробуйте снова.")
 
 while True:
-    max_version_input = input("Максимальная версия (оставьте пустым для поиска с самой новой возможной версии): ").strip()
+    # max_version_input = input("Максимальная версия (оставьте пустым для поиска с самой новой возможной версии): ").strip()
     if max_version_input == "":
         max_version = float("inf")
         break
