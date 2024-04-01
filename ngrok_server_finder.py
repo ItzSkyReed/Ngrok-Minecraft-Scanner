@@ -97,10 +97,8 @@ def server_finder(min_protocol: float, max_protocol: float) -> None:
 
 print("Введите версии точно из https://minecraft.wiki/w/Protocol_version#Java_Edition_2")
 print("Работают только версии с точными числовыми кодами, то есть 756, 342 и т.д.")
-min_version_input = ""
-max_version_input = ''
 while True:
-    # min_version_input = input("Минимальная версия (оставьте пустым для поиска с самой старой возможной версии): ").strip()
+    min_version_input = input("Минимальная версия (оставьте пустым для поиска с самой старой возможной версии): ").strip()
     if min_version_input == "":
         min_version = float("-inf")
         break
@@ -111,7 +109,7 @@ while True:
         print("Минимальная версия введена неверно, попробуйте снова.")
 
 while True:
-    # max_version_input = input("Максимальная версия (оставьте пустым для поиска с самой новой возможной версии): ").strip()
+    max_version_input = input("Максимальная версия (оставьте пустым для поиска с самой новой возможной версии): ").strip()
     if max_version_input == "":
         max_version = float("inf")
         break
