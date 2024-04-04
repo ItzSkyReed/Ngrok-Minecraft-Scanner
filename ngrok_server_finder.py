@@ -19,7 +19,6 @@ def check_server(ip: str, port_range, min_protocol: float, max_protocol: float, 
         with semaphore:
             try:
                 server = JavaServer.lookup(address=f"{ip}:{port}", timeout=0.5).status()
-                print(server.version.protocol)
                 if min_protocol <= server.version.protocol <= max_protocol:
                     with open(file_name, "a+") as writer:
                         message = f"{ip}:{port} | {server.version.name} | {server.players.online}/{server.players.max}\n"
